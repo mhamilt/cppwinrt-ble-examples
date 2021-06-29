@@ -1,11 +1,16 @@
 #pragma once
 // Windows BLE Interface
 #include <iostream>
+#include <sstream>
+#include <iomanip>
+#include <string>
 
 using winrt::Windows::Devices::Bluetooth::BluetoothConnectionStatus;
 using winrt::Windows::Devices::Bluetooth::BluetoothLEDevice;
+using winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisement;
 using winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementReceivedEventArgs;
 using winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementWatcher;
+using winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementWatcherStoppedEventArgs;
 using winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattCharacteristic;
 using winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattCharacteristicProperties;
 using winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattCharacteristicsResult;
@@ -36,12 +41,13 @@ public:
     void getRssiOfFoundDevice(int deviceIndex);
     void getFoundDeviceList();
     void setRssiSensitivity(int rssiSensitivity);
-    void setIgnoreiPhone(BOOL shouldIgnore);
+    void setIgnoreiPhone(bool shouldIgnore);
     //void setMaxObjectRef(MaxExternalObject* extMaxObjectRef);
-    void setReporting(BOOL reportingMode);
+    void setReporting(bool reportingMode);
     void subscribeToCharacteristic(const char* cuuid,
         const char* suuid,
         int deviceIndex);
+    std::string winrtGuidToString(winrt::guid);
 private:
     /// <summary>
     /// 
@@ -49,6 +55,7 @@ private:
     /// <param name="watcher"></param>
     /// <param name="eventArgs"></param>
     void didDiscoverPeripheral(BluetoothLEAdvertisementWatcher watcher, BluetoothLEAdvertisementReceivedEventArgs eventArgs);
+    void didCancelScanning();
     void didConnectPeripheral();
     void didDisconnectPeripheral();
     void didFailToConnectPeripheral();
@@ -59,9 +66,13 @@ private:
     void didUpdateValueForCharacteristic();
     void didDiscoverDescriptorsForCharacteristic();
     void postCharacteristicDescription();
+    void printDeviceDescription(BluetoothLEAdvertisementReceivedEventArgs device);
+    bool isPeripheralNew(BluetoothLEAdvertisementReceivedEventArgs);
 
 private:
-    std::vector<uint64_t> discoveredPeripherals;
+    std::vector<uint64_t> discoveredPeripheralUUIDs;
+    std::vector<BluetoothLEAdvertisementReceivedEventArgs> discoveredPeripherals;
+    bool shouldReport = true;
     uint32_t connectDeviceIndex;
     int rssiSensitivity;
     BluetoothLEAdvertisementWatcher bleWatcher;
