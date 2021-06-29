@@ -1,16 +1,16 @@
 ﻿#include "pch.h"
-
-#include <Windows.h>
-#include <winrt/Windows.Foundation.h>
-#include <winrt/Windows.Foundation.Collections.h>
-
-using winrt::Windows::Foundation::Collections::IVector;
+#include <iostream>
+#include "WinBleCentral.h"
 
 int main()
 {
-    IVector<int> foo;
-    foo.Append(1);
-    uint32_t bar;
-    foo.IndexOf(1, bar);
+	WinBleCentral bleCentral;
+	
+	bleCentral.scan();
+	std::cout << "Start Scanning: Press Enter To Quit" << std::endl;
+	while (getchar() != '\n');
+	
+	bleCentral.stop();
+
     return EXIT_SUCCESS;
 }

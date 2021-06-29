@@ -31,8 +31,19 @@ void scanForDevice();
 //--------------------------------------------------------------------------------------------
 std::vector<uint64_t> deviceUUIDs;
 //--------------------------------------------------------------------------------------------
+class Some_class
+{
+public:
+    void some_function() {}
+
+
+};
+
+
 int main() 
 {
+    typedef void (Some_class::* Some_fnc_ptr)();
+    auto fnc_ptr = &Some_class::some_function;
     scanForDevice();
 }
 //--------------------------------------------------------------------------------------------
