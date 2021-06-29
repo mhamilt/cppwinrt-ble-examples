@@ -1,4 +1,4 @@
-# BLE C++/WinRT Examples
+# C++/WinRT BLE Examples
 
 A straight forward example for interacting with the Windows Bluetooth API is a little difficult to find. So here are some barebones Console applications to get you started.
 
