@@ -1,4 +1,12 @@
-﻿#include "pch.h"
+﻿ /*
+ * Bluetooth Central Class
+ * 
+ * This exmaple aims to scan for and list every possible piece of information it can find about surrounding bluetooth devices. 
+ * The structure of the WinBleClass mimic that of the central manager delegate of the CoreBluetooth API
+ * 
+ */
+
+#include "pch.h"
 #include <iostream>
 #include "WinBleCentral.h"
 
