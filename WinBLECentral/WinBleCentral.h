@@ -23,15 +23,16 @@ using winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattWriteOpti
 using winrt::Windows::Devices::Bluetooth::BluetoothCacheMode;
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Foundation::Collections;
+using namespace winrt::Windows::Devices::Bluetooth::GenericAttributeProfile;
 
 
 class WinBleCentral
 {
-public:    
+public:
     WinBleCentral();
     ~WinBleCentral();
     void scan();
-    
+
     //void scanForService(t_atom* serviceUUID, long argc);
     void stop();
     void connectToFoundDevice(int deviceIndex);
@@ -51,6 +52,9 @@ public:
 private:
     void connectPeripheral(uint64_t windowsDeviceAddress);
     void discoverServices(BluetoothLEDevice device);
+    void discoverCharacteristicsForService(GattDeviceService service);
+    void readValueForCharacteristic(GattCharacteristic characteristic);
+
     /// <summary>
     /// 
     /// </summary>
@@ -58,13 +62,16 @@ private:
     /// <param name="eventArgs"></param>
     void didDiscoverPeripheral(BluetoothLEAdvertisementWatcher watcher, BluetoothLEAdvertisementReceivedEventArgs eventArgs);
     void didCancelScanning();
-    void didConnectPeripheral(BluetoothLEDevice &device);
+    void didConnectPeripheral(BluetoothLEDevice& device);
     void didDisconnectPeripheral();
     void didFailToConnectPeripheral();
+    void didFailToDiscoverCharacteristicsForService();
     void didFailToDiscoverServices();
+    void didFailToReadValueForCharacteristic();
     void didDiscoverIncludedServicesForService();
     void didDiscoverServices(IVectorView<GattDeviceService> services, GattCommunicationStatus error);
-    void didDiscoverCharacteristicsForService();
+    void didDiscoverCharacteristicsForService(IVectorView<GattCharacteristic> characteristics, GattCommunicationStatus error);
+    void didReadValueForCharacteristic(winrt::Windows::Storage::Streams::IBuffer value, GattCommunicationStatus error);
     void didUpdateValueForDescriptor();
     void didUpdateValueForCharacteristic();
     void didDiscoverDescriptorsForCharacteristic();
@@ -165,5 +172,5 @@ constexpr guid make_guid(std::string_view const& value) noexcept
 }
 static constexpr guid b
 {
-    make_guid("8AA90CAD-fed1-4c54-89db-9B7522D8AA92"sv) 
+    make_guid("8AA90CAD-fed1-4c54-89db-9B7522D8AA92"sv)
 };

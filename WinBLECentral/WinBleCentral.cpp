@@ -100,7 +100,6 @@ void WinBleCentral::discoverServices(BluetoothLEDevice device)
         {
             if (GattDeviceServicesResult result = sender.get(); result)
             {
-                
                 switch (status)
                 {
                 case winrt::Windows::Foundation::AsyncStatus::Completed:
@@ -118,6 +117,57 @@ void WinBleCentral::discoverServices(BluetoothLEDevice device)
             }
         });
 }
+
+void WinBleCentral::discoverCharacteristicsForService(GattDeviceService service)
+{
+    service.GetCharacteristicsAsync().Completed(
+        [this](IAsyncOperation<GattCharacteristicsResult>sender, AsyncStatus status)
+        {
+            if (GattCharacteristicsResult result = sender.get(); result)
+            {
+                switch (status)
+                {
+                case winrt::Windows::Foundation::AsyncStatus::Completed:
+                    this->didDiscoverCharacteristicsForService(result.Characteristics(), result.Status());
+                    break;
+                case winrt::Windows::Foundation::AsyncStatus::Canceled:
+                case winrt::Windows::Foundation::AsyncStatus::Error:
+                case winrt::Windows::Foundation::AsyncStatus::Started:
+                    this->didFailToDiscoverCharacteristicsForService();
+                }
+            }
+            else
+            {
+                std::cout << "Characteristics are Null" << std::endl;
+            }
+        });
+}
+
+void WinBleCentral::readValueForCharacteristic(GattCharacteristic characteristic)
+{
+    characteristic.ReadValueAsync().Completed(
+        [this](IAsyncOperation<GattReadResult> sender, AsyncStatus status)
+        {
+            if (GattReadResult  result = sender.get(); result)
+            {
+                switch (status)
+                {
+                case winrt::Windows::Foundation::AsyncStatus::Completed:
+                    this->didReadValueForCharacteristic(result.Value(), result.Status());
+                    break;
+                case winrt::Windows::Foundation::AsyncStatus::Canceled:
+                case winrt::Windows::Foundation::AsyncStatus::Error:
+                case winrt::Windows::Foundation::AsyncStatus::Started:
+                    this->didFailToReadValueForCharacteristic();
+                }
+            }
+            else
+            {
+                std::cout << "Value is Null" << std::endl;
+            }
+        });
+}
+
 //--------------------------------------------------------------------------------------------
 void WinBleCentral::didDiscoverPeripheral(BluetoothLEAdvertisementWatcher watcher,
     BluetoothLEAdvertisementReceivedEventArgs eventArgs)
@@ -157,6 +207,18 @@ void WinBleCentral::didFailToDiscoverServices()
 {
     std::cout << "didFailToDiscoverServices" << std::endl;
 }
+
+void WinBleCentral::didFailToDiscoverCharacteristicsForService()
+{
+    std::cout << "didFailToDiscoverCharacteristicsForService" << std::endl;
+}
+
+void WinBleCentral::didFailToReadValueForCharacteristic()
+{
+    std::cout << "didFailToReadValueForCharacteristic" << std::endl;
+
+}
+
 //--------------------------------------------------------------------------------------------
 void WinBleCentral::didDiscoverIncludedServicesForService() {}
 
@@ -170,6 +232,7 @@ void WinBleCentral::didDiscoverServices(IVectorView<GattDeviceService> services,
         for (auto service : services)
         {
             std::cout << "Service: " << winrtGuidToString(service.Uuid()) << std::endl;
+            discoverCharacteristicsForService(service);
         }
     }
     else
@@ -192,7 +255,67 @@ void WinBleCentral::didDiscoverServices(IVectorView<GattDeviceService> services,
 }
 
 //--------------------------------------------------------------------------------------------
-void WinBleCentral::didDiscoverCharacteristicsForService() {}
+void WinBleCentral::didDiscoverCharacteristicsForService(IVectorView<GattCharacteristic> characteristics, GattCommunicationStatus status)
+{
+    if (status == GattCommunicationStatus::Success)
+    {
+        std::cout << "didDiscoverCharacteristicsForService: " << winrtGuidToString(characteristics.GetAt(0).Service().Uuid()) << std::endl;
+
+        for (auto characteristic : characteristics)
+        {
+            std::cout << "Characteristic: " << winrtGuidToString(characteristic.Uuid()) << " : " << characteristic.UserDescription().c_str() << std::endl;
+            readValueForCharacteristic(characteristic);
+        }
+    }
+    else
+    {
+        std::cout << "Error Getting Characteristics: ";
+        switch (status)
+        {
+        case winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattCommunicationStatus::Unreachable:
+            std::cout << "Unreachable";
+            break;
+        case winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattCommunicationStatus::ProtocolError:
+            std::cout << "ProtocolError";
+            break;
+        case winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattCommunicationStatus::AccessDenied:
+            std::cout << "AccessDenied";
+            break;
+        }
+        std::cout << std::endl;
+    }
+}
+
+void WinBleCentral::didReadValueForCharacteristic(winrt::Windows::Storage::Streams::IBuffer value, GattCommunicationStatus status)
+{
+    if (status == GattCommunicationStatus::Success)
+    {
+        std::cout << "Value: ";
+        for (size_t i = 0; i < value.Length(); i++)
+        {
+            printf("%02x", value.data()[i]);
+        }
+        std::cout << std::endl;
+    }
+    else
+    {
+        std::cout << "Error Value For Characteristic: ";
+        switch (status)
+        {
+        case winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattCommunicationStatus::Unreachable:
+            std::cout << "Unreachable";
+            break;
+        case winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattCommunicationStatus::ProtocolError:
+            std::cout << "ProtocolError";
+            break;
+        case winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattCommunicationStatus::AccessDenied:
+            std::cout << "AccessDenied";
+            break;
+        }
+        std::cout << std::endl;
+    }
+}
+
 
 //--------------------------------------------------------------------------------------------
 void WinBleCentral::didUpdateValueForDescriptor() {}
