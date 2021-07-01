@@ -4,6 +4,8 @@
 
 int main()
 {
+	std::cout << "Start Programme" << std::endl;
+
 	WinBleCentral bleCentral;
 	
 	bleCentral.scan();

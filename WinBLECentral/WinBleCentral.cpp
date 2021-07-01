@@ -5,7 +5,7 @@
 WinBleCentral::WinBleCentral()
 {
     bleWatcher.Received([this](BluetoothLEAdvertisementWatcher watcher, BluetoothLEAdvertisementReceivedEventArgs eventArgs) {this->didDiscoverPeripheral(watcher, eventArgs); });
-    bleWatcher.Stopped([](BluetoothLEAdvertisementWatcher w, BluetoothLEAdvertisementWatcherStoppedEventArgs b) {});
+    bleWatcher.Stopped([](BluetoothLEAdvertisementWatcher w, BluetoothLEAdvertisementWatcherStoppedEventArgs b) {std::cout << "stopped scanning" << std::endl; });
 }
 //--------------------------------------------------------------------------------------------
 WinBleCentral::~WinBleCentral()
@@ -60,7 +60,7 @@ std::string WinBleCentral::winrtGuidToString(winrt::guid uuid)
 {
     char uuidCStr[34];
     uint64_t d6 = *((uint64_t*)&uuid.Data4[2]);
-    if(uuid.Data2 == 0)
+    if (uuid.Data2 == 0)
         sprintf(uuidCStr, "%04x", uuid.Data1);
     else
         sprintf(uuidCStr, "%08x-%04x-%04x-%02x%02x-%06x", uuid.Data1, uuid.Data2, uuid.Data3, uuid.Data4[0], uuid.Data4[1], d6);
@@ -70,99 +70,79 @@ std::string WinBleCentral::winrtGuidToString(winrt::guid uuid)
 //--------------------------------------------------------------------------------------------
 void WinBleCentral::connectPeripheral(uint64_t windowsDeviceAddress)
 {
-    /*
-    * Potential Source of bother.
-    https://devblogs.microsoft.com/oldnewthing/20201030-00/?p=104409
-
-    use https://docs.microsoft.com/en-us/uwp/api/windows.foundation.metadata.apiinformation.ismethodpresent?view=winrt-20348
-
-    to test
-    */
-
-  //  this->didConnectPeripheral(BluetoothLEDevice::FromBluetoothAddressAsync(windowsDeviceAddress).get());
-    auto awaitBluetooth = BluetoothLEDevice::FromBluetoothAddressAsync(127957777215202);
-    BluetoothLEDevice nRF = awaitBluetooth.get();
-
-    auto waiting = nRF.GetGattServicesAsync();
-    auto result = waiting.get();
-
-    auto bruh = nRF.GetGattServicesAsync();
-    auto d = bruh.get();
-    auto services = d.Services();
-    for (auto service : services)
-    {
-        std::cout << "Service: " << winrtGuidToString(service.Uuid()) << std::endl;
-    }
-    //BluetoothLEDevice::FromBluetoothAddressAsync(windowsDeviceAddress).Completed(
-    //    [this](IAsyncOperation<BluetoothLEDevice> sender, AsyncStatus status)
-    //    {
-    //        auto device = sender.GetResults();
-    //        switch (status)
-    //        {
-    //        case winrt::Windows::Foundation::AsyncStatus::Completed:
-    //            this->didConnectPeripheral(device);
-    //            break;
-    //        case winrt::Windows::Foundation::AsyncStatus::Canceled:
-    //        case winrt::Windows::Foundation::AsyncStatus::Error:
-    //        case winrt::Windows::Foundation::AsyncStatus::Started:
-    //            this->didFailToConnectPeripheral();
-    //        }
-    //    });
+    BluetoothLEDevice::FromBluetoothAddressAsync(windowsDeviceAddress).Completed(
+        [this](IAsyncOperation<BluetoothLEDevice> sender, AsyncStatus status)
+        {
+            if (auto device = sender.GetResults(); device)
+            {
+                switch (status)
+                {
+                case winrt::Windows::Foundation::AsyncStatus::Completed:
+                    this->didConnectPeripheral(device);
+                    break;
+                case winrt::Windows::Foundation::AsyncStatus::Canceled:
+                case winrt::Windows::Foundation::AsyncStatus::Error:
+                case winrt::Windows::Foundation::AsyncStatus::Started:
+                    this->didFailToConnectPeripheral();
+                }
+            }
+            else
+            {
+                std::cout << "Device is Null: " << sender.ErrorCode() << std::endl;
+            }
+        });
 }
 
 void WinBleCentral::discoverServices(BluetoothLEDevice device)
 {
-    /*auto async = device.GetGattServicesAsync();
-    if (async.wait_for(5s) == AsyncStatus::Completed)
-    {
-        didDiscoverServices(async.GetResults().Services(), async.GetResults().Status());
-    }*/
-
-
-    //this->didDiscoverServices(result.Services(), result.Status());
-    //worker.Completed(
-    //    [this](IAsyncOperation<GattDeviceServicesResult>sender, AsyncStatus status)
-    //    {
-    //        //if (status == AsyncStatus::Completed)
-    //        //{
-    //        //    //GattDeviceServicesResult result = sender.get();
-    //        //   // sender.get();
-    //        //    //this->didDiscoverServices(result.Services(), result.Status());
-    //        //}
-    //        //else
-    //        //{
-    //        //    this->didFailToDiscoverServices();
-    //        //}
-    //    });
+    device.GetGattServicesAsync().Completed(
+        [this](IAsyncOperation<GattDeviceServicesResult>sender, AsyncStatus status)
+        {
+            if (GattDeviceServicesResult result = sender.get(); result)
+            {
+                
+                switch (status)
+                {
+                case winrt::Windows::Foundation::AsyncStatus::Completed:
+                    this->didDiscoverServices(result.Services(), result.Status());
+                    break;
+                case winrt::Windows::Foundation::AsyncStatus::Canceled:
+                case winrt::Windows::Foundation::AsyncStatus::Error:
+                case winrt::Windows::Foundation::AsyncStatus::Started:
+                    this->didFailToDiscoverServices();
+                }
+            }
+            else
+            {
+                std::cout << "Services are Null" << std::endl;
+            }
+        });
 }
 //--------------------------------------------------------------------------------------------
 void WinBleCentral::didDiscoverPeripheral(BluetoothLEAdvertisementWatcher watcher,
     BluetoothLEAdvertisementReceivedEventArgs eventArgs)
 {
 
-    if (isPeripheralNew(eventArgs) && eventArgs.RawSignalStrengthInDBm() > -60 && 127957777215202 == eventArgs.BluetoothAddress())
+    /*if (isPeripheralNew(eventArgs) && eventArgs.RawSignalStrengthInDBm() > -60 && 127957777215202 == eventArgs.BluetoothAddress())*/
+    if (isPeripheralNew(eventArgs))
     {
         discoveredPeripheralUUIDs.push_back(eventArgs.BluetoothAddress());
         discoveredPeripherals.push_back(eventArgs);
-        bleWatcher.Stop();
+        /*bleWatcher.Stop();*/
         if (shouldReport)
         {
             std::cout << "Device UUID: " << eventArgs.BluetoothAddress() << std::endl;
             printDeviceDescription(eventArgs);
         }
-        
+
         connectToFoundDevice(discoveredPeripherals.size() - 1);
     }
 }
 //--------------------------------------------------------------------------------------------
-void WinBleCentral::didConnectPeripheral(BluetoothLEDevice &device)
+void WinBleCentral::didConnectPeripheral(BluetoothLEDevice& device)
 {
-    if (!connecting)
-    {
-        
-        this->connecting = true;
-        std::wcout << "didConnectPeripheral" << std::endl;
-    }
+    std::wcout << "didConnectPeripheral:" << device.Name().c_str() << std::endl;
+    discoverServices(device);
 }
 
 //--------------------------------------------------------------------------------------------
@@ -183,10 +163,10 @@ void WinBleCentral::didDiscoverIncludedServicesForService() {}
 //--------------------------------------------------------------------------------------------
 void WinBleCentral::didDiscoverServices(IVectorView<GattDeviceService> services, GattCommunicationStatus status)
 {
-    std::cout << "didDiscoverServices" << std::endl;
-
     if (status == GattCommunicationStatus::Success)
     {
+        std::cout << "didDiscoverServices: " << services.GetAt(0).Device().Name().c_str() << std::endl;
+
         for (auto service : services)
         {
             std::cout << "Service: " << winrtGuidToString(service.Uuid()) << std::endl;
@@ -245,7 +225,7 @@ void WinBleCentral::printDeviceDescription(BluetoothLEAdvertisementReceivedEvent
         }
         std::cout << std::endl;
     }
-    std::cout << std::dec <<  "RSSI: " << device.RawSignalStrengthInDBm() <<  std::endl;
+    std::cout << std::dec << "RSSI: " << device.RawSignalStrengthInDBm() << std::endl;
     std::cout << "*----------------------------------------*" << std::endl;
 }
 //--------------------------------------------------------------------------------------------
