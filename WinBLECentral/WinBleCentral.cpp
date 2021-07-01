@@ -5,7 +5,7 @@
 WinBleCentral::WinBleCentral()
 {
     bleWatcher.Received([this](BluetoothLEAdvertisementWatcher watcher, BluetoothLEAdvertisementReceivedEventArgs eventArgs) {this->didDiscoverPeripheral(watcher, eventArgs); });
-    bleWatcher.Stopped([](BluetoothLEAdvertisementWatcher w, BluetoothLEAdvertisementWatcherStoppedEventArgs b) {std::cout << "stopped scanning" << std::endl; });
+    bleWatcher.Stopped([this](BluetoothLEAdvertisementWatcher w, BluetoothLEAdvertisementWatcherStoppedEventArgs b) {this->didCancelScanning();});
 }
 //--------------------------------------------------------------------------------------------
 WinBleCentral::~WinBleCentral()
@@ -42,16 +42,28 @@ void WinBleCentral::connectToDeviceWithUUID(const char* uuid)
 void WinBleCentral::connectToDeviceWithName(const char* name) {}
 
 //--------------------------------------------------------------------------------------------
-void WinBleCentral::clearDicoveredPeripherals() {}
+void WinBleCentral::clearDicoveredPeripherals() 
+{
+    discoveredPeripherals.clear();
+}
 
 //--------------------------------------------------------------------------------------------
 void WinBleCentral::getRssiOfFoundDevice(int deviceIndex) {}
 
 //--------------------------------------------------------------------------------------------
-void WinBleCentral::getFoundDeviceList() {}
+void WinBleCentral::getFoundDeviceList() 
+{
+    for (auto device : discoveredPeripherals)
+    {
+
+    }
+}
 
 //--------------------------------------------------------------------------------------------
-void WinBleCentral::setRssiSensitivity(int rssiSensitivity) {}
+void WinBleCentral::setRssiSensitivity(int rssiSensitivity) 
+{
+    this->rssiSensitivity = rssiSensitivity;
+}
 
 //--------------------------------------------------------------------------------------------
 void WinBleCentral::setIgnoreiPhone(bool shouldIgnore) {}
@@ -188,6 +200,12 @@ void WinBleCentral::didDiscoverPeripheral(BluetoothLEAdvertisementWatcher watche
         connectToFoundDevice(discoveredPeripherals.size() - 1);
     }
 }
+
+void WinBleCentral::didCancelScanning()
+{
+    std::cout << "stopped scanning" << std::endl;
+}
+
 //--------------------------------------------------------------------------------------------
 void WinBleCentral::didConnectPeripheral(BluetoothLEDevice& device)
 {
